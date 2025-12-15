@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Tailor - AI ATS Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar animate-entry delay-1">
+
+        <div class="header-section animate-entry delay-2">
+            <h1>Resume Tailor</h1>
+            <p>AI-Powered ATS Optimizer</p>
+        </div>
+
+        <div class="scrollable-content animate-entry delay-3">
+
+            <div class="form-section">
+                <h2 class="section-title">Configuration</h2>
+                
+                <div class="form-group animate-entry delay-4">
+                    <label>API Key</label>
+                    <input type="password" placeholder="gsk_...">
+                </div>
+
+                <h2 class="section-title">Job Details</h2>
+
+                <div class="form-group animate-entry delay-5">
+                    <label>Job Title / Role</label>
+                    <input type="text" placeholder="e.g. Senior Software Engineer">
+                </div>
+
+                <div class="form-group animate-entry delay-6">
+                    <label>Job Description</label>
+                    <textarea placeholder="Paste job description here..."></textarea>
+                </div>
+
+                <h2 class="section-title">Resume</h2>
+
+                <div class="form-group pdfup animate-entry delay-6">
+                    <label>Upload Resume (PDF)</label>
+                    <input id="pdf" type="file" accept="application/pdf">
+                </div>
+            </div>
+
+            <button id="tlr" class="animate-entry delay-6">
+                Optimize Resume
+            </button>
+
+        </div>
+
+        <div class="aipnl animate-entry delay-6">
+            <h3>Processing Status</h3>
+            <ul class="status-steps">
+                <li><span class="status-dot idle"></span>System initialized</li>
+                <li><span class="status-dot idle"></span>Waiting for input</li>
+            </ul>
+        </div>
+
+    </aside>
+
+    <!-- RIGHT CONTENT -->
+    <main class="main-content animate-entry delay-3">
+
+        <div class="resume-stage">
+            <div class="resume-container animate-entry delay-4">
+                <div class="resume-header">
+                    <h2>Resume Preview</h2>
+                    <span class="badge">Live</span>
+                </div>
+                <div class="resume-scale">
+                    <iframe id="resumeFrame"></iframe>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
