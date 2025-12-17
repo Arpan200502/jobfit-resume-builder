@@ -24,19 +24,19 @@
                 
                 <div class="form-group animate-entry delay-4">
                     <label>API Key</label>
-                    <input type="password" placeholder="gsk_...">
+                    <input id="api" type="password" placeholder="gsk_...">
                 </div>
 
                 <h2 class="section-title">Job Details</h2>
 
                 <div class="form-group animate-entry delay-5">
                     <label>Job Title / Role</label>
-                    <input type="text" placeholder="e.g. Senior Software Engineer">
+                    <input id="jobttl" type="text" placeholder="e.g. Senior Software Engineer">
                 </div>
 
                 <div class="form-group animate-entry delay-6">
                     <label>Job Description</label>
-                    <textarea placeholder="Paste job description here..."></textarea>
+                    <textarea id="jobd" placeholder="Paste job description here..."></textarea>
                 </div>
 
                 <h2 class="section-title">Resume</h2>
@@ -73,13 +73,14 @@
                     <span class="badge">Live</span>
                 </div>
                 <div class="resume-scale">
-                    <iframe id="resumeFrame"></iframe>
+                    <iframe id="resumeFrame" style="width: 100%; height: 100vh; border: none;"></iframe>
+
                 </div>
             </div>
         </div>
 
     </main>
 
-    <script src="app.js"></script>
+    <script type="module"src="app.js"></script>
 </body>
 </html>
