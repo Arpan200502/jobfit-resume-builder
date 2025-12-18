@@ -69,208 +69,149 @@ const API_KEY = apiKey.value.trim();
 
             
                 
-                const jobprompt=`You are the "Truthful Resume Matcher," an expert AI system specializing in ATS (Applicant Tracking System) optimization and semantic matching.
+  const jobprompt=`
+                        You are "ResumeTailor_Architect_v3", a ruthless, logic-driven ATS Engine.
 
-Your Goal: Optimize a candidate's resume to match a specific Job Description (JD) by making implied skills explicit, without ever fabricating experience.
+YOUR GOAL:
+To calculate a candidate's "Fit Score" by SUBTRACTING points for every gap.
+You do NOT "estimate" the score. You CALCULATE it.
+You do NOT give the benefit of the doubt.
 
-You will receive two inputs:
-1. <RESUME_CONTENT> (The user's original data)
-2. <JOB_DESCRIPTION> (The target role)
+================================================================================
+SECTION 1: THE "MUTUALLY EXCLUSIVE" (OR) PROTOCOL
+================================================================================
+Job Descriptions (JDs) often list alternatives. You must identify them immediately.
 
-### CORE PRIME DIRECTIVES (NON-NEGOTIABLE)
-1.  **ZERO FABRICATION POLICY:** You must NEVER invent jobs, projects, dates, degrees, or specific hard skills (e.g., do not add "Python" if the user only lists "Excel").
-2.  **PRESERVATION FIRST:** Do not rewrite or summarize the user's existing bullet points unless strictly necessary to integrate a keyword truthfully. Original strong metrics must remain untouched.
-3.  **THE "INTERVIEW DEFENSE" TEST:** Before adding any keyword, ask: "If the interviewer asks the candidate about this specific term, does the resume prove they have the context to answer?" If the answer is No, do not add it.
-4.  **ONE-PAGE ARCHITECTURE:** The output must be concise. Tighten phrasing to fit content on a single A4 page.
+Logic:
+IF JD says: "Experience with Java, Python, OR C++"
+AND Resume has: "Python"
+RESULT: "Python" is PRESENT. "Java" and "C++" are NOT missing. They are irrelevant.
 
-### 1. ANALYSIS & MATCHING LOGIC
-Before generating the HTML, perform a deep analysis (internal processing):
+IF JD says: "Experience with AWS, Azure, OR GCP"
+AND Resume has: NONE of them.
+RESULT:
+- DO NOT list "AWS" as missing.
+- DO NOT list "Azure" as missing.
+- DO NOT list "GCP" as missing.
+- DO list ONE single item: "Cloud Platform (AWS/Azure/GCP)" as MISSING.
 
-**Step A: Keyword Extraction**
-Identify high-value keywords in the JD (Hard skills, Soft skills, Methodologies, Tools).
+**VIOLATION PENALTY:**
+If you list mutually exclusive items (like AWS and Azure) as separate missing skills, you have FAILED.
 
-**Step B: The Truthful Bridge Protocol**
-Compare JD keywords against the Resume. Classify them into three buckets:
-* **Bucket 1: EXPLICIT MATCH.** (Resume says "React", JD says "React"). Action: Highlight/Bold slightly or ensure prominence.
-* **Bucket 2: IMPLIED/SYNONYMOUS MATCH.** (Resume says "Managed team calendar", JD says "Scheduling"; Resume says "Node.js", JD says "Backend API").
-    * *Action:* You are authorized to REPHRASE the existing point to include the JD keyword.
-    * *Example:* Change "Used Node.js" to "Built Backend APIs using Node.js".
-* **Bucket 3: NO EVIDENCE.** (Resume has no mention of "Salesforce", JD requires "Salesforce").
-    * *Action:* DO NOT ADD. Ignore this keyword. Better to have a lower score than a lying resume.
+================================================================================
+SECTION 2: STEP-BY-STEP ANALYSIS EXECUTION
+================================================================================
 
-### 2. SECTION-BY-SECTION RULES
+STEP 1: HARD SKILLS EXTRACTION
+- Scan JD for all required technical skills.
+- Ignore "Preferred" or "Bonus" skills for the "Missing" list (move them to Preferred section).
+- Check Resume for matches (Exact, Implied, or Composite).
+- **Composite Stack Rule:** If Resume has React + Node + Mongo, then "MERN Stack" is PRESENT. Do not mark missing.
 
-**A. HEADER (Contact Info)**
-* Keep exactly as provided. Do not hallucinate LinkedIn URLs or locations.
+STEP 2: EDUCATION CHECK (BINARY)
+- Match = Degree & Major match.
+- Partial = Degree matches, Major differs.
+- Mismatch = No degree, or Degree level is too low (e.g., Associates instead of Bachelors).
 
-**B. PROFESSIONAL SUMMARY (The "Hook")**
-* Rewrite this section to align with the JD's *role title* and *core competencies*.
-* You MAY synthesize a new summary based on the total experience found in the resume, using the terminology of the JD.
-* *Constraint:* Must be truthful. If JD asks for "Senior Engineer" and resume shows 1 year experience, use "Aspiring Engineer" or "Junior Engineer", do not lie about seniority.
+STEP 3: SCORING CALCULATION (THE SUBTRACTIVE MODEL)
+Start with **100 Points**. Apply these deductions strictly:
 
-**C. SKILLS SECTION**
-* Organize skills into categories (e.g., Languages, Tools, Frameworks).
-* **Expansion Rule:** If the user lists a broad skill (e.g., "Microsoft Office") and the JD asks for a specific subset that is standard (e.g., "Excel Pivot Tables"), you may list "Microsoft Office (Excel, PowerPoint)".
-* **Inference Rule:** If the user lists "React", you may add "JavaScript/ES6" if missing.
+1. **Hard Skills Deductions:**
+   - For every MISSING "High Priority" skill: **SUBTRACT 12 POINTS**.
+   - For every MISSING "Medium Priority" skill: **SUBTRACT 6 POINTS**.
+   - For every MISSING "Low Priority" skill: **SUBTRACT 3 POINTS**.
 
-**D. EXPERIENCE (The "Body")**
-* Keep the original company names, dates, and titles.
-* **Keyword Injection:** Locate the bullet point most relevant to a missing JD keyword.
-    * *Original:* "Wrote code for the payment page."
-    * *JD Keyword:* "Secure Transaction Processing"
-    * *Optimized:* "Developed code for the payment page ensuring **Secure Transaction Processing**."
-* **Action Verbs:** strengthen weak verbs (e.g., change "Did" to "Orchestrated" or "Executed") ONLY if the context supports high agency.
+2. **Education Deductions:**
+   - If status is "Mismatch": **SUBTRACT 20 POINTS**.
+   - If status is "Partial": **SUBTRACT 5 POINTS**.
 
-**E. PROJECTS**
-* Apply the same keyword injection logic as Experience. Ensure technical stacks match the JD where truthful.
+3. **Experience Deductions:**
+   - If years of experience < 50% of required: **SUBTRACT 15 POINTS**.
+   - If experience is in a different domain: **SUBTRACT 10 POINTS**.
 
-### 3. OUTPUT FORMATTING (HTML)
-You must output a FULL, VALID HTML document. Do not output markdown.
-* Use a clean, modern, ATS-parsable structure.
-* **CSS:** Embed CSS in <style> tags. Use font-family: Arial, sans-serif;. Font size 10pt or 11pt. Margins: 0.5in. Line-height: 1.3.
-* **Layout:**
-    * Header: Centered name & contact.
-    * Section Headings: Uppercase, bold, bottom border.
-    * Bullet points: <ul> with clean indentation.
-* **No placeholders:** The output must be the final, ready-to-save file.
+4. **Formatting/Keyword Deductions:**
+   - For every "Keyword Optimization Opportunity" (skill present but wrong word): **SUBTRACT 1 POINT**.
 
-### 4. INTERNAL PROCESSING (CHAIN OF THOUGHT)
-Before generating the HTML, strictly evaluate your proposed changes:
-1. List 3 key missing keywords from JD.
-2. For each, verify if evidence exists in the Resume.
-3. If evidence exists, state *where* you will insert it.
-4. If no evidence, explicitly state "REJECTED".
+**MANDATORY CAPS (OVERRIDES):**
+- If the final calculated score is > 80 but there are ANY "High Priority" missing skills -> **FORCE SCORE TO 75**.
+- If the final calculated score is > 60 but Education is "Mismatch" -> **FORCE SCORE TO 60**.
 
-(Do not output this internal thought process to the user, but use it to govern the HTML generation).
+================================================================================
+SECTION 3: OUTPUT JSON STRUCTURE (STRICT)
+================================================================================
 
-### FINAL INSTRUCTION
-Generate the Optimized Resume in HTML based on the user's provided Resume and the target JD. Ensure it is truthful, ATS-optimized, and aesthetically clean.
+Return ONLY this JSON. No other text.
 
-==================================================
-OUTPUT RULES (STRICT)
-==================================================
-
-- Output ONLY a complete HTML document
-- No explanations
-- No markdown
-- No comments
-- Use ONLY valid HTML tags
-- Use EXACT template below
-- Replace placeholders ONLY
-
-==================================================
-LOCKED HTML TEMPLATE (DO NOT MODIFY)
-==================================================
-
-<html>
-<head>
-<style>
-body {
-    font-family: "Times New Roman", serif;
-    margin: 20px 40px;
-    color: #000;
+{
+  "overallScore": integer (Calculated from 100 - deductions),
+  "verdict": string ("Perfect Match" | "Strong" | "Good" | "Weak" | "Unqualified"),
+  "categoryScores": {
+    "hardSkills": integer (0-100),
+    "experience": integer (0-100),
+    "softSkills": integer (0-100),
+    "atsAlignment": integer (0-100)
+  },
+  "hardSkillsAnalysis": {
+    "present": [ "List of found skills" ],
+    "implied": [ "List of inferred skills" ],
+    "missing": [
+      {
+        "skill": "Name of skill (or Group Name if 'OR' logic applies)",
+        "importance": "High" | "Medium" | "Low",
+        "estimatedLearningTime": "e.g., 2 weeks",
+        "reason": "Brief reason from JD"
+      }
+    ],
+    "preferredExposureGaps": [
+      {
+        "skill": "Name of preferred skill",
+        "estimatedLearningTime": "Time",
+        "reason": "Why it helps"
+      }
+    ],
+    "keywordOptimization": [
+      {
+        "keyword": "Exact missing keyword",
+        "reason": "Resume uses X instead of Y",
+        "whereToAdd": "Section name"
+      }
+    ]
+  },
+  "keywordOptimizationOpportunities": [ "Summary strings" ],
+  "softSkillGaps": [ "List of missing soft signals" ],
+  "educationFit": {
+    "status": "Match" | "Partial" | "Mismatch",
+    "details": "Comparison details"
+  },
+  "experienceFitSummary": "Brief analysis text",
+  "recommendations": [
+    "Specific action items. MUST reference missing skills or keywords."
+  ]
 }
 
-h1 {
-    text-align: center;
-    font-size: 30px;
-    margin-bottom: 8px;
-    font-weight: bold;
-}
+================================================================================
+INPUT DATA
+================================================================================
 
-.contact {
-    text-align: center;
-    font-size: 12px;
-    margin-bottom: 12px;
-}
-
-.summary {
-    text-align: center;
-    font-size: 13px;
-    font-style: italic;
-    margin-bottom: 22px;
-}
-
-.section-title {
-    font-size: 14px;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-top: 18px;
-    margin-bottom: 4px;
-}
-
-.hr {
-    border-bottom: 1px solid #000;
-    margin-bottom: 12px;
-}
-
-ul {
-    font-size: 12px;
-    padding-left: 22px;
-    margin-top: 4px;
-}
-
-ul li {
-    margin-bottom: 4px;
-}
-</style>
-</head>
-
-<body>
-
-<h1>[INSERT_NAME]</h1>
-<div class="contact">[INSERT_CONTACT]</div>
-<div class="summary">[TAILORED SUMMARY]</div>
-
-<div class="section-title">Professional Experience</div>
-<div class="hr"></div>
-[EXPERIENCE]
-
-<div class="section-title">Education</div>
-<div class="hr"></div>
-[EDUCATION]
-
-<div class="section-title">Projects</div>
-<div class="hr"></div>
-[PROJECTS]
-
-<div class="section-title">Skills</div>
-<div class="hr"></div>
-[SKILLS]
-
-<div class="section-title">Extracurricular</div>
-<div class="hr"></div>
-[EXTRACURRICULAR]
-
-</body>
-</html>
-
-==================================================
-INPUT RESUME TEXT
-==================================================
+RESUME TEXT:
 [RESUME TEXT]
 
-==================================================
-JOB TITLE
-==================================================
-[JOB TITLE]
-
-==================================================
-JOB DESCRIPTION
-==================================================
+JOB DESCRIPTION:
 [JOB DESCRIPTION]
 
-==================================================
-FINAL INSTRUCTION
-==================================================
+JOB TITLE:
+[JOB TITLE]
 
-Produce a resume that:
-- Preserves all strong original content
-- Explicitly mirrors job description keywords
-- Improves ATS match score
-- NEVER makes the resume weaker
+PERFORM CALCULATION AND GENERATE JSON.
+
+
+
+
 
                 `;
+
+
+
                 let prompt=jobprompt
                 .replace("[RESUME TEXT]",cleanText)
                 .replace("[JOB DESCRIPTION]",jobdesc.value)
@@ -293,9 +234,225 @@ Produce a resume that:
                    
                     
                     const data = await response.json();
-                    let resumehtml=data.choices[0].message.content;
-                const iframe = document.getElementById("resumeFrame");
-                                    iframe.srcdoc = resumehtml;
+                    let raw = data.choices[0].message.content;
+
+                    // Remove ```json and ``` wrappers
+                    raw = raw
+                    .replace(/```json/gi, "")
+                    .replace(/```/g, "")
+                    .trim();
+
+                    const analysis = JSON.parse(raw);
+                        console.log("PARSED ANALYSIS:", analysis);
+
+                    
+                   /* ===============================
+                    1. OPEN OVERLAY
+                    ================================ */
+                    const overlay = document.querySelector(".ai-review-overlay");
+                    overlay.classList.add("active");
+
+                    /* ===============================
+                    2. SCORE RING + VERDICT
+                    ================================ */
+                    const scoreNumber = document.querySelector(".score-ring-value .number");
+                    const scoreVerdict = document.querySelector(".score-verdict");
+                    const scoreCircle = document.querySelector(".score-ring-progress");
+
+                    scoreNumber.textContent = analysis.overallScore;
+                    scoreVerdict.textContent = analysis.verdict;
+
+                    // SVG progress ring
+                    const radius = 60;
+                    const circumference = 2 * Math.PI * radius;
+                    const offset = circumference - (analysis.overallScore / 100) * circumference;
+
+                    scoreCircle.style.strokeDasharray = `${circumference}`;
+                    scoreCircle.style.strokeDashoffset = offset;
+
+                    /* ===============================
+                    3. CATEGORY BREAKDOWN
+                    ================================ */
+                    const categoryMap = {
+                    ats: analysis.categoryScores.atsAlignment,
+                    "hard-skills": analysis.categoryScores.hardSkills,
+                    "soft-skills": analysis.categoryScores.softSkills,
+                    experience: analysis.categoryScores.experience,
+                    };
+
+                    Object.entries(categoryMap).forEach(([cls, value]) => {
+                    const bar = document.querySelector(`.category-bar-fill.${cls}`);
+                    const label = bar.closest(".category-item")
+                        .querySelector(".category-score");
+
+                    bar.style.width = `${value}%`;
+                    label.textContent = `${value} / 100`;
+                    });
+                    // ==============================
+// Preferred Skills (Optional) - MATCHING CSS STYLE
+// ==============================
+
+const preferredSection = document.getElementById("preferred-skills-section");
+const preferredContainer = document.getElementById("preferred-skills-container");
+
+// Clear previous results
+preferredContainer.innerHTML = "";
+
+// 1. Get the data
+const preferredGaps = analysis.hardSkillsAnalysis?.preferredExposureGaps;
+
+// 2. Check if data exists
+if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
+    
+    // Show the section
+    preferredSection.style.display = "block";
+
+    // Create cards
+    preferredGaps.forEach(item => {
+        const card = document.createElement("div");
+        
+        // CHANGE 1: Use 'skill-card' to match Missing Skills styling exactly
+        card.className = "skill-card"; 
+
+        // CHANGE 2: Use the same internal structure (skill-meta, skill-importance)
+        card.innerHTML = `
+            <h5>${item.skill}</h5>
+            <div class="skill-meta">
+                <span class="skill-importance medium">
+                    ● Preferred
+                </span>
+                <span class="skill-time">
+                    ⏱ ${item.estimatedLearningTime}
+                </span>
+                <span class="skill-time" style="opacity: 0.7;">
+                    ℹ️ ${item.reason}
+                </span>
+            </div>
+        `;
+
+        preferredContainer.appendChild(card);
+    });
+
+} else {
+    // Hide section if no data found
+    preferredSection.style.display = "none";
+}
+                    /* ===============================
+                    4. FILTER IMPLIED SKILLS (CRITICAL FIX)
+                    ================================ */
+                    const impliedSkills = new Set(
+                    (analysis.hardSkillsAnalysis.implied || []).map(s =>
+                        s.toLowerCase()
+                    )
+                    );
+
+                    const keywordSkills = new Set(
+                    (analysis.hardSkillsAnalysis.keywordOptimization || []).map(k =>
+                        k.keyword.toLowerCase()
+                    )
+                    );
+
+                    const realMissingSkills = (analysis.hardSkillsAnalysis.missing || []).filter(
+                    m =>
+                        !impliedSkills.has(m.skill.toLowerCase()) &&
+                        !keywordSkills.has(m.skill.toLowerCase())
+                    );
+
+                    /* ===============================
+                    5. RENDER MISSING SKILLS & TOOLS
+                    ================================ */
+                    const skillsGrid = document.querySelector(".skills-grid");
+                    skillsGrid.innerHTML = "";
+
+                    realMissingSkills.forEach(skill => {
+                    const card = document.createElement("div");
+                    card.className = "skill-card";
+
+                    card.innerHTML = `
+                        <h5>${skill.skill}</h5>
+                        <div class="skill-meta">
+                        <span class="skill-importance ${skill.importance.toLowerCase()}">
+                            ● ${skill.importance} Priority
+                        </span>
+                        <span class="skill-time">
+                            ⏱ ${skill.estimatedLearningTime}
+                        </span>
+                        </div>
+                    `;
+
+                    skillsGrid.appendChild(card);
+                    });
+
+                    /* ===============================
+                    6. SOFT SKILL GAPS
+                    ================================ */
+                    const softSkillsList = document.querySelector(".soft-skills-list");
+                    softSkillsList.innerHTML = "";
+
+                    analysis.softSkillGaps.forEach(skill => {
+                    const item = document.createElement("div");
+                    item.className = "soft-skill-item";
+
+                    item.innerHTML = `
+                        <div class="soft-skill-icon">💡</div>
+                        <span>${skill}</span>
+                    `;
+
+                    softSkillsList.appendChild(item);
+                    });
+
+                    /* ===============================
+                    7. ACTIONABLE SUGGESTIONS
+                    (KEYWORD OPTIMIZATION FIRST)
+                    ================================ */
+                    const suggestionsList = document.querySelector(".suggestions-list");
+                    suggestionsList.innerHTML = "";
+
+                    // ATS keyword wording fixes (NOT learning gaps)
+                    (analysis.hardSkillsAnalysis.keywordOptimization || []).forEach(k => {
+                    const item = document.createElement("div");
+                    item.className = "suggestion-item";
+
+                    item.innerHTML = `
+                        <div class="suggestion-checkbox"></div>
+                        <span>
+                        ATS wording fix: add "<strong>${k.keyword}</strong>" in 
+                        <em>${k.whereToAdd}</em> — ${k.reason}
+                        </span>
+                    `;
+
+                    suggestionsList.appendChild(item);
+                    });
+
+                    // General recommendations
+                    analysis.recommendations.forEach(text => {
+                    const item = document.createElement("div");
+                    item.className = "suggestion-item";
+
+                    item.innerHTML = `
+                        <div class="suggestion-checkbox"></div>
+                        <span>${typeof text === "string" ? text : text.text}</span>
+                    `;
+
+                    suggestionsList.appendChild(item);
+                    });
+
+                    /* ===============================
+                    8. LOAD PDF INTO OVERLAY IFRAME
+                    ================================ */
+                    const pdfIframe = document.querySelector(".overlay-resume-preview iframe");
+                    const pdfURL = URL.createObjectURL(file);
+                    pdfIframe.src = pdfURL;
+                    /* ===============================
+                    CLOSE BUTTON
+                    ================================ */
+                    document.querySelector(".overlay-close").onclick = () => {
+                    overlay.classList.remove("active");
+                    URL.revokeObjectURL(pdfURL);
+                    };
+
+                   
+
                     
 
                     } catch (err) {
