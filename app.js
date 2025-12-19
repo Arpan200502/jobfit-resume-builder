@@ -4,10 +4,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc= "./libs/pdf.worker.mjs";
 
 
 
-
-
-
-
 var jobdesc=document.getElementById('jobd')
 var jobttl=document.getElementById('jobttl')
 var pdf=document.getElementById('pdf');
@@ -24,9 +20,44 @@ apiKey.addEventListener("input", () => {
 });
 
 
+let loaderTimer = null;
+
+
+
+function stopLoaderCycle() {
+    clearTimeout(loaderTimer);
+    document.querySelectorAll(".status-steps li")
+        .forEach(li => li.classList.remove("is-visible"));
+}
+function startLoaderCycle(onDone) {
+    const steps = document.querySelectorAll(".status-steps li");
+    let index = 0;
+
+    steps.forEach(li => li.classList.remove("is-visible"));
+
+    function next() {
+        if (index >= steps.length) {
+            onDone(); // 🔥 loader fully finished
+            return;
+        }
+
+        steps[index].classList.add("is-visible");
+
+        setTimeout(() => {
+            steps[index].classList.remove("is-visible");
+            index++;
+            next();
+        }, 900);
+    }
+
+    next();
+}
+
+
 
 btn.onclick = async function(){
-    
+   
+
 const API_KEY = apiKey.value.trim();
     if(!API_KEY){
         alert("Enter api key");
@@ -39,9 +70,21 @@ const API_KEY = apiKey.value.trim();
         alert("please upload a file");
         return;
     }else{
-        var reader=new FileReader();
-        reader.readAsArrayBuffer(file);
+        
+       document.querySelector(".aipnl").style.display = "block";
+       
+            
+
+startLoaderCycle(() => {
+    document.querySelector(".aipnl").style.display = "none";
+    btn.style.display = "none";
+
+
+    // 🔥 NOW start FileReader + API
+    var reader = new FileReader();
+    reader.readAsArrayBuffer(file);
         reader.onload = async function(){
+            
             var pdfdata=reader.result;
             const loadingtask=pdfjsLib.getDocument(pdfdata);
             
@@ -69,146 +112,222 @@ const API_KEY = apiKey.value.trim();
 
             
                 
-  const jobprompt=`
-                        You are "ResumeTailor_Architect_v3", a ruthless, logic-driven ATS Engine.
+                    const jobprompt=`
+                                        You are "ResumeTailor_Architect_v4_Industrial", a specialized, ruthless, logic-driven ATS (Applicant Tracking System) Engine.
 
-YOUR GOAL:
-To calculate a candidate's "Fit Score" by SUBTRACTING points for every gap.
-You do NOT "estimate" the score. You CALCULATE it.
-You do NOT give the benefit of the doubt.
+                    YOUR ROLE:
+                    You are NOT a career coach. You are NOT a resume writer. You are a precision-focused Hiring Algorithm.
+                    Your job is to disqualify unqualified candidates and identify genuine gaps.
+                    You do NOT give the benefit of the doubt. You rely ONLY on explicit text evidence.
 
-================================================================================
-SECTION 1: THE "MUTUALLY EXCLUSIVE" (OR) PROTOCOL
-================================================================================
-Job Descriptions (JDs) often list alternatives. You must identify them immediately.
+                    ================================================================================
+                    SECTION 1: THE "MUTUALLY EXCLUSIVE" (OR) LOGIC PROTOCOL
+                    ================================================================================
 
-Logic:
-IF JD says: "Experience with Java, Python, OR C++"
-AND Resume has: "Python"
-RESULT: "Python" is PRESENT. "Java" and "C++" are NOT missing. They are irrelevant.
+                    Job Descriptions (JDs) often list alternatives. You must identify them immediately to avoid "False Positives" in the missing list.
 
-IF JD says: "Experience with AWS, Azure, OR GCP"
-AND Resume has: NONE of them.
-RESULT:
-- DO NOT list "AWS" as missing.
-- DO NOT list "Azure" as missing.
-- DO NOT list "GCP" as missing.
-- DO list ONE single item: "Cloud Platform (AWS/Azure/GCP)" as MISSING.
+                    PROTOCOL:
+                    1. Scan the JD for "OR" separators (e.g., "Java, Python, OR C++", "AWS, Azure, or GCP").
+                    2. Check the Resume for ANY ONE of these options.
 
-**VIOLATION PENALTY:**
-If you list mutually exclusive items (like AWS and Azure) as separate missing skills, you have FAILED.
+                    SCENARIO A: Candidate has ONE of them.
+                    - RESULT: The requirement is MET.
+                    - ACTION: Mark that skill as PRESENT.
+                    - CRITICAL: Do NOT list the other unused options as "Missing". They are irrelevant.
 
-================================================================================
-SECTION 2: STEP-BY-STEP ANALYSIS EXECUTION
-================================================================================
+                    SCENARIO B: Candidate has NONE of them.
+                    - RESULT: The requirement is MISSING.
+                    - ACTION: Create ONE single missing entry named after the group.
+                    - Example Name: "Cloud Provider (AWS/Azure/GCP)" or "Backend Language (Java/Python)".
+                    - CRITICAL: Do NOT list "AWS", "Azure", and "GCP" as 3 separate missing skills. This inflates the error count falsely.
 
-STEP 1: HARD SKILLS EXTRACTION
-- Scan JD for all required technical skills.
-- Ignore "Preferred" or "Bonus" skills for the "Missing" list (move them to Preferred section).
-- Check Resume for matches (Exact, Implied, or Composite).
-- **Composite Stack Rule:** If Resume has React + Node + Mongo, then "MERN Stack" is PRESENT. Do not mark missing.
+                    ================================================================================
+                    SECTION 2: FOUNDATIONAL OPERATING RULES
+                    ================================================================================
 
-STEP 2: EDUCATION CHECK (BINARY)
-- Match = Degree & Major match.
-- Partial = Degree matches, Major differs.
-- Mismatch = No degree, or Degree level is too low (e.g., Associates instead of Bachelors).
+                    1. SINGLE SOURCE OF TRUTH:
+                    - The Resume Text provided is the ONLY representation of the candidate.
+                    - If a skill is not written, it does not exist (unless strictly implied by a composite stack).
 
-STEP 3: SCORING CALCULATION (THE SUBTRACTIVE MODEL)
-Start with **100 Points**. Apply these deductions strictly:
+                    2. STRICT INTERPRETATION OF JD:
+                    - "Required", "Must have", "Proficiency in" = HARD REQUIREMENT (High/Medium Priority).
+                    - "Preferred", "Bonus", "Plus", "Good to have" = PREFERRED (Low Priority).
+                    - Preferred skills MUST NEVER appear in the "missing" list. They go to "preferredExposureGaps".
 
-1. **Hard Skills Deductions:**
-   - For every MISSING "High Priority" skill: **SUBTRACT 12 POINTS**.
-   - For every MISSING "Medium Priority" skill: **SUBTRACT 6 POINTS**.
-   - For every MISSING "Low Priority" skill: **SUBTRACT 3 POINTS**.
+                    3. COMPOSITE STACK LOGIC:
+                    - MERN = Mongo + Express + React + Node.
+                    - LAMP = Linux + Apache + MySQL + PHP.
+                    - RULE: If a candidate lists the *Components*, they have the *Stack*.
+                    - ACTION: Do not mark "MERN Stack" as missing if components are present. Move to "keywordOptimization".
 
-2. **Education Deductions:**
-   - If status is "Mismatch": **SUBTRACT 20 POINTS**.
-   - If status is "Partial": **SUBTRACT 5 POINTS**.
+                    ================================================================================
+                    SECTION 3: STEP-BY-STEP EXECUTION PIPELINE
+                    ================================================================================
 
-3. **Experience Deductions:**
-   - If years of experience < 50% of required: **SUBTRACT 15 POINTS**.
-   - If experience is in a different domain: **SUBTRACT 10 POINTS**.
+                    You must process the input in this exact order.
 
-4. **Formatting/Keyword Deductions:**
-   - For every "Keyword Optimization Opportunity" (skill present but wrong word): **SUBTRACT 1 POINT**.
+                    ### PHASE 1: EDUCATION & ELIGIBILITY (THE GATEKEEPER)
+                    1. Extract JD Degree Requirements (BS, MS, PhD) and Field (CS, EE, etc.).
+                    2. Extract Resume Degree and Major.
+                    3. Compare:
+                    - MATCH: Resume Degree >= JD Degree AND Field matches.
+                    - PARTIAL: Resume Degree == JD Degree but Field differs.
+                    - MISMATCH: Resume Degree < JD Degree OR Resume has NO degree.
+                    4. "Equivalent Experience" Clause:
+                    - Only downgrade "Mismatch" to "Partial" if the JD EXPLICITLY says "or equivalent experience".
 
-**MANDATORY CAPS (OVERRIDES):**
-- If the final calculated score is > 80 but there are ANY "High Priority" missing skills -> **FORCE SCORE TO 75**.
-- If the final calculated score is > 60 but Education is "Mismatch" -> **FORCE SCORE TO 60**.
+                    ### PHASE 2: HARD SKILLS EXTRACTION
+                    1. Extract keywords.
+                    2. Filter out "Preferred" skills (send to Phase 4).
+                    3. Check Resume for Exact or Implied matches.
+                    4. Apply "OR" Logic (Section 1).
+                    5. Generate "Missing" list.
 
-================================================================================
-SECTION 3: OUTPUT JSON STRUCTURE (STRICT)
-================================================================================
+                    ### PHASE 3: ATS KEYWORD OPTIMIZATION
+                    1. Detect skills that are PRESENT/IMPLIED but use different wording.
+                    - Example: JD wants "CI/CD", Resume has "Jenkins".
+                    - Example: JD wants "TDD", Resume has "Unit Testing with Jest".
+                    2. These are NOT missing skills. Report in keywordOptimization.
 
-Return ONLY this JSON. No other text.
+                    ### PHASE 4: PREFERRED SKILLS ANALYSIS
+                    1. Check skills listed as "Bonus/Preferred" in JD.
+                    2. If absent, add to preferredExposureGaps.
+                    3. These do NOT affect the score negatively.
 
-{
-  "overallScore": integer (Calculated from 100 - deductions),
-  "verdict": string ("Perfect Match" | "Strong" | "Good" | "Weak" | "Unqualified"),
-  "categoryScores": {
-    "hardSkills": integer (0-100),
-    "experience": integer (0-100),
-    "softSkills": integer (0-100),
-    "atsAlignment": integer (0-100)
-  },
-  "hardSkillsAnalysis": {
-    "present": [ "List of found skills" ],
-    "implied": [ "List of inferred skills" ],
-    "missing": [
-      {
-        "skill": "Name of skill (or Group Name if 'OR' logic applies)",
-        "importance": "High" | "Medium" | "Low",
-        "estimatedLearningTime": "e.g., 2 weeks",
-        "reason": "Brief reason from JD"
-      }
-    ],
-    "preferredExposureGaps": [
-      {
-        "skill": "Name of preferred skill",
-        "estimatedLearningTime": "Time",
-        "reason": "Why it helps"
-      }
-    ],
-    "keywordOptimization": [
-      {
-        "keyword": "Exact missing keyword",
-        "reason": "Resume uses X instead of Y",
-        "whereToAdd": "Section name"
-      }
-    ]
-  },
-  "keywordOptimizationOpportunities": [ "Summary strings" ],
-  "softSkillGaps": [ "List of missing soft signals" ],
-  "educationFit": {
-    "status": "Match" | "Partial" | "Mismatch",
-    "details": "Comparison details"
-  },
-  "experienceFitSummary": "Brief analysis text",
-  "recommendations": [
-    "Specific action items. MUST reference missing skills or keywords."
-  ]
-}
+                    ================================================================================
+                    SECTION 4: THE SUBTRACTIVE SCORING ALGORITHM (STABILITY ENGINE)
+                    ================================================================================
 
-================================================================================
-INPUT DATA
-================================================================================
+                    You must calculate the overallScore using this exact mathematical formula.
+                    START WITH: 100 POINTS.
 
-RESUME TEXT:
-[RESUME TEXT]
+                    APPLY DEDUCTIONS:
 
-JOB DESCRIPTION:
-[JOB DESCRIPTION]
+                    1. **Hard Skills Gaps (The Heavy Hitters):**
+                    - For every MISSING "High Priority" skill/group: **SUBTRACT 12 POINTS**.
+                    - For every MISSING "Medium Priority" skill/group: **SUBTRACT 6 POINTS**.
+                    - For every MISSING "Low Priority" skill/group: **SUBTRACT 3 POINTS**.
 
-JOB TITLE:
-[JOB TITLE]
+                    2. **Education Gaps:**
+                    - If status is "Mismatch": **SUBTRACT 20 POINTS**.
+                    - If status is "Partial": **SUBTRACT 5 POINTS**.
 
-PERFORM CALCULATION AND GENERATE JSON.
+                    3. **Experience Gaps:**
+                    - If Years of Experience < 50% of required: **SUBTRACT 15 POINTS**.
+                    - If Domain is irrelevant (e.g. Sales resume for Coding job): **SUBTRACT 10 POINTS**.
+
+                    4. **Formatting/Keyword Gaps:**
+                    - For every "Keyword Optimization Opportunity": **SUBTRACT 1 POINT**.
+
+                    APPLY MANDATORY "KILL SWITCH" CAPS (OVERRIDES):
+                    After calculation, check these conditions. If met, FORCE the score down.
+
+                    1. **THE "CORE TECH" CAP:**
+                    - If the JD requires a Core Language/Framework (e.g., Java, React) and it is MISSING:
+                    - **MAX SCORE ALLOWED: 55**. (Even if everything else is perfect).
+
+                    2. **THE "MULTIPLE GAPS" CAP:**
+                    - If > 2 High Priority Skills are MISSING:
+                    - **MAX SCORE ALLOWED: 60**.
+
+                    3. **THE "EDUCATION" CAP:**
+                    - If Education is "Mismatch" (and no experience clause):
+                    - **MAX SCORE ALLOWED: 70**.
+
+                    *Example Calculation:*
+                    Start 100.
+                    Missing "Java" (High, Core) -> -12.
+                    Missing "Spring" (High) -> -12.
+                    Missing "Microservices" (Medium) -> -6.
+                    Calculated Score: 70.
+                    "Core Tech Cap" triggered (Missing Java): Force Score -> 55.
+                    Final Score: 55.
+
+                    ================================================================================
+                    SECTION 5: OUTPUT JSON ARCHITECTURE (STRICT)
+                    ================================================================================
+
+                    You must output PURE JSON. No markdown fencing.
+                    The JSON keys must match the following schema EXACTLY.
+
+                    {
+                    "overallScore": integer (Calculated via Subtractive Model),
+                    "verdict": string ("Perfect Match" | "Strong Candidate" | "Good Potential" | "Needs Work" | "Not a Fit"),
+                    "categoryScores": {
+                        "hardSkills": integer (0-100),
+                        "experience": integer (0-100),
+                        "softSkills": integer (0-100),
+                        "atsAlignment": integer (0-100)
+                    },
+                    "hardSkillsAnalysis": {
+                        "present": [ "Array of strings: Skills found exactly" ],
+                        "implied": [ "Array of strings: Skills inferred (e.g. Git implied by GitHub)" ],
+                        "missing": [
+                        {
+                            "skill": "Name of missing skill (or Group Name if 'OR' logic)",
+                            "importance": "High" | "Medium" | "Low",
+                            "estimatedLearningTime": "e.g. 2-3 weeks",
+                            "reason": "Why is this required?"
+                        }
+                        ],
+                        "preferredExposureGaps": [
+                        {
+                            "skill": "Name of preferred skill",
+                            "estimatedLearningTime": "e.g. 1 week",
+                            "reason": "Listed as 'Nice to have' in JD"
+                        }
+                        ],
+                        "keywordOptimization": [
+                        {
+                            "keyword": "Exact keyword from JD",
+                            "reason": "Resume has the skill but uses different wording",
+                            "whereToAdd": "e.g. 'Skills Section' or 'Summary'"
+                        }
+                        ]
+                    },
+                    "keywordOptimizationOpportunities": [ "Array of summary strings for keyword fixes" ],
+                    "softSkillGaps": [ "Array of strings: Soft skills required by JD but not signaled" ],
+                    "educationFit": {
+                        "status": "Match" | "Partial" | "Mismatch",
+                        "details": "Specific explanation of degree/major comparison"
+                    },
+                    "experienceFitSummary": "2-3 sentences analyzing seniority and relevance",
+                    "recommendations": [
+                        "Array of strings: Concrete, actionable advice.",
+                        "MUST link directly to a missing skill or keyword.",
+                        "Do not give generic advice."
+                    ]
+                    }
+
+                    ================================================================================
+                    SECTION 6: FINAL SANITY CHECK
+                    ================================================================================
+
+                    Before printing JSON:
+                    1. Did you list "AWS", "Azure", and "GCP" as 3 separate missing items? If yes, CONSOLIDATE them into one.
+                    2. Is the score > 80 but "Core Tech" is missing? If yes, LOWER the score to 55.
+                    3. Are preferred skills in the "missing" list? If yes, MOVE them to "preferredExposureGaps".
+
+                    ================================================================================
+                    INPUT DATA
+                    ================================================================================
+
+                    RESUME TEXT:
+                    [RESUME TEXT]
+
+                    JOB DESCRIPTION:
+                    [JOB DESCRIPTION]
+
+                    JOB TITLE:
+                    [JOB TITLE]
+
+                    PERFORM ANALYSIS. GENERATE ONLY JSON.
 
 
 
 
 
-                `;
+                                    `;
 
 
 
@@ -289,54 +408,54 @@ PERFORM CALCULATION AND GENERATE JSON.
                     label.textContent = `${value} / 100`;
                     });
                     // ==============================
-// Preferred Skills (Optional) - MATCHING CSS STYLE
-// ==============================
+                    // Preferred Skills (Optional) - MATCHING CSS STYLE
+                    // ==============================
 
-const preferredSection = document.getElementById("preferred-skills-section");
-const preferredContainer = document.getElementById("preferred-skills-container");
+                    const preferredSection = document.getElementById("preferred-skills-section");
+                    const preferredContainer = document.getElementById("preferred-skills-container");
 
-// Clear previous results
-preferredContainer.innerHTML = "";
+                    // Clear previous results
+                    preferredContainer.innerHTML = "";
 
-// 1. Get the data
-const preferredGaps = analysis.hardSkillsAnalysis?.preferredExposureGaps;
+                    // 1. Get the data
+                    const preferredGaps = analysis.hardSkillsAnalysis?.preferredExposureGaps;
 
-// 2. Check if data exists
-if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
-    
-    // Show the section
-    preferredSection.style.display = "block";
+                    // 2. Check if data exists
+                    if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
+                        
+                        // Show the section
+                        preferredSection.style.display = "block";
 
-    // Create cards
-    preferredGaps.forEach(item => {
-        const card = document.createElement("div");
-        
-        // CHANGE 1: Use 'skill-card' to match Missing Skills styling exactly
-        card.className = "skill-card"; 
+                        // Create cards
+                        preferredGaps.forEach(item => {
+                            const card = document.createElement("div");
+                            
+                            // CHANGE 1: Use 'skill-card' to match Missing Skills styling exactly
+                            card.className = "skill-card"; 
 
-        // CHANGE 2: Use the same internal structure (skill-meta, skill-importance)
-        card.innerHTML = `
-            <h5>${item.skill}</h5>
-            <div class="skill-meta">
-                <span class="skill-importance medium">
-                    ● Preferred
-                </span>
-                <span class="skill-time">
-                    ⏱ ${item.estimatedLearningTime}
-                </span>
-                <span class="skill-time" style="opacity: 0.7;">
-                    ℹ️ ${item.reason}
-                </span>
-            </div>
-        `;
+                            // CHANGE 2: Use the same internal structure (skill-meta, skill-importance)
+                            card.innerHTML = `
+                                <h5>${item.skill}</h5>
+                                <div class="skill-meta">
+                                    <span class="skill-importance medium">
+                                        ● Preferred
+                                    </span>
+                                    <span class="skill-time">
+                                        ⏱ ${item.estimatedLearningTime}
+                                    </span>
+                                    <span class="skill-time" style="opacity: 0.7;">
+                                        ℹ️ ${item.reason}
+                                    </span>
+                                </div>
+                            `;
 
-        preferredContainer.appendChild(card);
-    });
+                            preferredContainer.appendChild(card);
+                        });
 
-} else {
-    // Hide section if no data found
-    preferredSection.style.display = "none";
-}
+                    } else {
+                        // Hide section if no data found
+                        preferredSection.style.display = "none";
+                    }
                     /* ===============================
                     4. FILTER IMPLIED SKILLS (CRITICAL FIX)
                     ================================ */
@@ -450,7 +569,7 @@ if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
                     overlay.classList.remove("active");
                     URL.revokeObjectURL(pdfURL);
                     };
-
+ 
                    
 
                     
@@ -459,7 +578,19 @@ if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
                            console.error(err);
                     }
                      
+stopLoaderCycle();
+        document.querySelector(".aipnl").style.display = "none";
+
+                    btn.style.display = "block";
+        btn.disabled = false;
 
         }
+});
+
+
+
+       
+        
+
     }
 };
