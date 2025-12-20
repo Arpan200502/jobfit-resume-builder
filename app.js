@@ -77,7 +77,7 @@ const API_KEY = apiKey.value.trim();
 
 startLoaderCycle(() => {
     document.querySelector(".aipnl").style.display = "none";
-    btn.style.display = "none";
+    
 
 
     // 🔥 NOW start FileReader + API
@@ -581,7 +581,7 @@ startLoaderCycle(() => {
 stopLoaderCycle();
         document.querySelector(".aipnl").style.display = "none";
 
-                    btn.style.display = "block";
+         btn.style.display = "block";
         btn.disabled = false;
 
         }
