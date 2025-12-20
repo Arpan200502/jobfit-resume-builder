@@ -1,852 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume GapHunter - AI Optimizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./style.css">
-    <style>
-        /* AI Review Overlay Styles */
-        .ai-review-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .ai-review-overlay.active {
-            display: flex;
-        }
-
-        .ai-review-overlay::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 10, 18, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-
-        .overlay-panel {
-            position: relative;
-            width: 90%;
-            max-width: 1400px;
-            height: 85vh;
-            background: linear-gradient(145deg, #1a1a2e 0%, #16162a 50%, #0f0f1a 100%);
-            border-radius: 24px;
-            box-shadow: 
-                0 0 0 1px rgba(139, 92, 246, 0.15),
-                0 25px 80px -20px rgba(139, 92, 246, 0.3),
-                0 0 60px rgba(236, 72, 153, 0.1);
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            overflow: hidden;
-        }
-
-        .overlay-close {
-            position: absolute;
-            top: 20px;
-            right: 24px;
-            width: 44px;
-            height: 44px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #a0a0b0;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            z-index: 10;
-        }
-
-        .overlay-close:hover {
-            background: rgba(239, 68, 68, 0.2);
-            border-color: rgba(239, 68, 68, 0.4);
-            color: #ef4444;
-        }
-
-        /* Left Panel - Resume Preview */
-        .overlay-left {
-            background: rgba(0, 0, 0, 0.3);
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 28px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .overlay-resume-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .overlay-resume-header h3 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 18px;
-            font-weight: 600;
-            color: #ffffff;
-            margin: 0;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 20px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 12px;
-            font-weight: 500;
-            color: #22c55e;
-        }
-
-        .status-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            background: #22c55e;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #22c55e;
-            animation: pulse-green 2s infinite;
-        }
-
-        @keyframes pulse-green {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .overlay-resume-preview {
-            flex: 1;
-            background: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-        }
-
-        .overlay-resume-preview iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        /* Right Panel - Analysis Dashboard */
-        .overlay-right {
-            padding: 28px 32px;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .overlay-right::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .overlay-right::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .overlay-right::-webkit-scrollbar-thumb {
-            background: rgba(139, 92, 246, 0.3);
-            border-radius: 3px;
-        }
-
-        .dashboard-header {
-            margin-bottom: 28px;
-        }
-
-        .dashboard-header h2 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 26px;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 0 0 6px 0;
-            background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .dashboard-header p {
-            font-family: 'Outfit', sans-serif;
-            font-size: 14px;
-            color: #6b7280;
-            margin: 0;
-        }
-
-        /* Score Section */
-        .score-section {
-            display: grid;
-            grid-template-columns: 200px 1fr;
-            gap: 32px;
-            margin-bottom: 32px;
-        }
-
-        .score-ring-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            background: linear-gradient(145deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.05));
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 20px;
-        }
-
-        .score-ring {
-            position: relative;
-            width: 140px;
-            height: 140px;
-        }
-
-        .score-ring svg {
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-        }
-
-        .score-ring-bg {
-            fill: none;
-            stroke: rgba(255, 255, 255, 0.08);
-            stroke-width: 10;
-        }
-
-        .score-ring-progress {
-            fill: none;
-            stroke: url(#scoreGradient);
-            stroke-width: 10;
-            stroke-linecap: round;
-            stroke-dasharray: 377;
-            stroke-dashoffset: 86.71;
-            transition: stroke-dashoffset 1s ease;
-        }
-
-        .score-ring-value {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
-        .score-ring-value .number {
-            font-family: 'Outfit', sans-serif;
-            font-size: 36px;
-            font-weight: 700;
-            color: #ffffff;
-            line-height: 1;
-        }
-
-        .score-ring-value .total {
-            font-family: 'Outfit', sans-serif;
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .score-verdict {
-            margin-top: 16px;
-            padding: 8px 16px;
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1));
-            border: 1px solid rgba(251, 191, 36, 0.3);
-            border-radius: 12px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 12px;
-            font-weight: 600;
-            color: #fbbf24;
-            text-align: center;
-        }
-
-        /* Category Breakdown */
-        .category-breakdown {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .category-item {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .category-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .category-label span {
-            font-family: 'Outfit', sans-serif;
-            font-size: 13px;
-            color: #d1d5db;
-        }
-
-        .category-label .category-score {
-            font-weight: 600;
-            color: #a78bfa;
-        }
-
-        .category-bar {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .category-bar-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.8s ease;
-        }
-
-        .category-bar-fill.ats { 
-            width: 88%; 
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
-        }
-        .category-bar-fill.hard-skills { 
-            width: 72%; 
-            background: linear-gradient(90deg, #ec4899, #f472b6);
-        }
-        .category-bar-fill.soft-skills { 
-            width: 65%; 
-            background: linear-gradient(90deg, #06b6d4, #22d3ee);
-        }
-        .category-bar-fill.experience { 
-            width: 80%; 
-            background: linear-gradient(90deg, #22c55e, #4ade80);
-        }
-        .category-bar-fill.job-match { 
-            width: 77%; 
-            background: linear-gradient(90deg, #fbbf24, #fcd34d);
-        }
-
-        /* Section Cards */
-        .analysis-section {
-            margin-bottom: 28px;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .section-header h4 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            color: #ffffff;
-            margin: 0;
-        }
-
-        .section-icon {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.1));
-            border-radius: 10px;
-            font-size: 14px;
-        }
-
-        /* Missing Skills Cards */
-        .skills-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .skill-card {
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 14px;
-            transition: all 0.2s ease;
-        }
-
-        .skill-card:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(139, 92, 246, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .skill-card h5 {
-            font-family: 'Outfit', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            color: #ffffff;
-            margin: 0 0 10px 0;
-        }
-
-        .skill-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .skill-importance {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 11px;
-            font-weight: 500;
-        }
-
-        .skill-importance.high {
-            color: #ef4444;
-        }
-
-        .skill-importance.medium {
-            color: #fbbf24;
-        }
-
-        .skill-importance.low {
-            color: #22c55e;
-        }
-
-        .skill-time {
-            font-family: 'Outfit', sans-serif;
-            font-size: 11px;
-            color: #6b7280;
-        }
-
-        /* Soft Skills Gaps */
-        .soft-skills-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .soft-skill-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-        }
-
-        .soft-skill-icon {
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(236, 72, 153, 0.15);
-            border-radius: 8px;
-            font-size: 12px;
-        }
-
-        .soft-skill-item span {
-            font-family: 'Outfit', sans-serif;
-            font-size: 13px;
-            color: #d1d5db;
-        }
-
-        /* Actionable Suggestions */
-        .suggestions-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .suggestion-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 14px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .suggestion-item:hover {
-            background: rgba(139, 92, 246, 0.08);
-            border-color: rgba(139, 92, 246, 0.2);
-        }
-
-        .suggestion-checkbox {
-            width: 20px;
-            height: 20px;
-            min-width: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(139, 92, 246, 0.4);
-            border-radius: 6px;
-            margin-top: 2px;
-        }
-
-        .suggestion-item span {
-            font-family: 'Outfit', sans-serif;
-            font-size: 13px;
-            color: #d1d5db;
-            line-height: 1.5;
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .overlay-panel {
-                grid-template-columns: 320px 1fr;
-            }
-        }
-
-        @media (max-width: 900px) {
-            .overlay-panel {
-                grid-template-columns: 1fr;
-                height: 90vh;
-            }
-
-            .overlay-left {
-                display: none;
-            }
-
-            .score-section {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .overlay-panel {
-                width: 95%;
-                height: 92vh;
-                border-radius: 16px;
-            }
-
-            .overlay-right {
-                padding: 20px;
-            }
-
-            .skills-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .preferred-skills-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 14px;
-        }
-
-        .preferred-skill-card {
-        background: linear-gradient(180deg, rgba(120,80,255,0.08), rgba(120,80,255,0.03));
-        border: 1px solid rgba(160,140,255,0.25);
-        border-radius: 14px;
-        padding: 14px;
-        }
-
-        .preferred-skill-card h5 {
-        margin: 0 0 6px;
-        font-size: 14px;
-        font-weight: 600;
-        }
-
-        .preferred-meta {
-        font-size: 12px;
-        opacity: 0.85;
-        }
-
-        .section-hint {
-        margin-top: 10px;
-        font-size: 12px;
-        opacity: 0.7;
-        }
-
-    </style>
-</head>
-<body>
-
-    <!-- LEFT SIDEBAR -->
-    <aside class="sidebar animate-entry delay-1">
-
-        <div class="header-section animate-entry delay-2">
-            <h1>Resume Gap Hunter</h1>
-            <p>AI-Powered Skill Optimizer</p>
-        </div>
-
-        <div class="scrollable-content animate-entry delay-3">
-
-            <div class="form-section">
-                <h2 class="section-title">Configuration</h2>
-                
-                <div class="form-group animate-entry delay-4">
-                    <label>API Key</label>
-                    <input id="api" type="password" placeholder="gsk_...">
-                </div>
-
-                <h2 class="section-title">Job Details</h2>
-
-                <div class="form-group animate-entry delay-5">
-                    <label>Job Title / Role</label>
-                    <input id="jobttl" type="text" placeholder="e.g. Senior Software Engineer">
-                </div>
-
-                <div class="form-group animate-entry delay-6">
-                    <label>Job Description</label>
-                    <textarea id="jobd" placeholder="Paste job description here..."></textarea>
-                </div>
-
-                <h2 class="section-title">Resume</h2>
-
-                <div class="form-group pdfup animate-entry delay-6">
-                    <label>Upload Resume (PDF)</label>
-                    <input id="pdf" type="file" accept="application/pdf">
-                </div>
-            </div>
-
-            <button id="tlr" class="animate-entry delay-6">
-                Evaluate Fit
-            </button>
-
-        </div>
-
-        <div class="aipnl animate-entry delay-6">
-            <h3>Processing Status</h3>
-            <ul class="status-steps">
-                <li><span class="status-dot idle"></span>Initializing system</li>
-                <li><span class="status-dot idle"></span>Processing input</li>
-                <li><span class="status-dot idle"></span>Analyzing data</li>
-                <li><span class="status-dot idle"></span>Generating output</li>
-                <li><span class="status-dot idle"></span>Finalizing results</li>
-            </ul>
-
-        </div>
-
-    </aside>
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>AI Resume Builder</title>
+  </head>
+  <body>
     
-
-    <!-- AI REVIEW OVERLAY -->
-    <div class="ai-review-overlay">
-        <div class="overlay-panel">
-            <button class="overlay-close" aria-label="Close overlay">×</button>
+    <div class="container">
+      
+      <!-- LEFT PANEL -->
+       
+      <div class="panel">
+        
+        <h1>AI Resume Builder</h1>
+        <p class="subtitle">Powered by Groq LLaMA-3.3</p>
+        <a href="http://www.google.com/">
+        <button class="btn hmbtn"  >HOME</button>
+        </a>
+        <div class="form-group">
+          <label for="templateSelect">Template</label>
+          <select id="templateSelect">
             
-            <!-- Left Panel - Resume Preview -->
-            <div class="overlay-left">
-                <div class="overlay-resume-header">
-                    <h3>Uploaded Resume</h3>
-                    <span class="status-badge">Ready</span>
-                </div>
-                <div class="overlay-resume-preview">
-                    <iframe src="about:blank" title="Resume Preview"></iframe>
-                </div>
-            </div>
-
-            <!-- Right Panel - Analysis Dashboard -->
-            <div class="overlay-right">
-                <div class="dashboard-header">
-                    <h2>AI Resume Analysis</h2>
-                    <p>Comprehensive ATS compatibility report</p>
-                </div>
-
-                <!-- Overall Match Score -->
-                <div class="score-section">
-                    <div class="score-ring-container">
-                        <div class="score-ring">
-                            <svg viewBox="0 0 140 140">
-                                <defs>
-                                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stop-color="#8b5cf6"/>
-                                        <stop offset="50%" stop-color="#ec4899"/>
-                                        <stop offset="100%" stop-color="#fbbf24"/>
-                                    </linearGradient>
-                                </defs>
-                                <circle class="score-ring-bg" cx="70" cy="70" r="60"/>
-                                <circle class="score-ring-progress" cx="70" cy="70" r="60"/>
-                            </svg>
-                            <div class="score-ring-value">
-                                <div class="number">77</div>
-                                <div class="total">/ 100</div>
-                            </div>
-                        </div>
-                        <div class="score-verdict">Needs Work — Major Revisions</div>
-                    </div>
-
-                    <!-- Category Breakdown -->
-                    <div class="category-breakdown">
-                        <div class="category-item">
-                            <div class="category-label">
-                                <span>ATS Compatibility</span>
-                                <span class="category-score">22 / 25</span>
-                            </div>
-                            <div class="category-bar">
-                                <div class="category-bar-fill ats"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="category-label">
-                                <span>Hard Skills Match</span>
-                                <span class="category-score">18 / 25</span>
-                            </div>
-                            <div class="category-bar">
-                                <div class="category-bar-fill hard-skills"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="category-label">
-                                <span>Soft Skills Signals</span>
-                                <span class="category-score">13 / 20</span>
-                            </div>
-                            <div class="category-bar">
-                                <div class="category-bar-fill soft-skills"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="category-label">
-                                <span>Experience Relevance</span>
-                                <span class="category-score">16 / 20</span>
-                            </div>
-                            <div class="category-bar">
-                                <div class="category-bar-fill experience"></div>
-                            </div>
-                        </div>
-                        <div class="category-item">
-                            <div class="category-label">
-                                <span>Job Match Readiness</span>
-                                <span class="category-score">8 / 10</span>
-                            </div>
-                            <div class="category-bar">
-                                <div class="category-bar-fill job-match"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Missing Skills & Tools -->
-                <div class="analysis-section">
-                    <div class="section-header">
-                        <div class="section-icon">🛠️</div>
-                        <h4>Missing Skills & Tools</h4>
-                    </div>
-                    <div class="skills-grid">
-                        <div class="skill-card">
-                            <h5>Docker</h5>
-                            <div class="skill-meta">
-                                <span class="skill-importance high">● High Priority</span>
-                                <span class="skill-time">⏱ 2–3 weeks to learn</span>
-                            </div>
-                        </div>
-                        <div class="skill-card">
-                            <h5>Kubernetes</h5>
-                            <div class="skill-meta">
-                                <span class="skill-importance high">● High Priority</span>
-                                <span class="skill-time">⏱ 4–6 weeks to learn</span>
-                            </div>
-                        </div>
-                        <div class="skill-card">
-                            <h5>GraphQL</h5>
-                            <div class="skill-meta">
-                                <span class="skill-importance medium">● Medium Priority</span>
-                                <span class="skill-time">⏱ 1–2 weeks to learn</span>
-                            </div>
-                        </div>
-                        <div class="skill-card">
-                            <h5>CI/CD Pipelines</h5>
-                            <div class="skill-meta">
-                                <span class="skill-importance medium">● Medium Priority</span>
-                                <span class="skill-time">⏱ 2–3 weeks to learn</span>
-                            </div>
-                        </div>
-                        <div class="skill-card">
-                            <h5>Redis</h5>
-                            <div class="skill-meta">
-                                <span class="skill-importance low">● Low Priority</span>
-                                <span class="skill-time">⏱ 1 week to learn</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                                <div class="analysis-section" id="preferred-skills-section" style="display: none;">
-    <div class="section-header">
-        <div class="section-icon">⭐</div>
-        <h4>Preferred Skills (Optional)</h4>
-    </div>
-
-    <div class="skills-grid" id="preferred-skills-container">
+            <option value="ats">ATS</option>
+            <option value="olivia">ATS MODERN</option>
+            <option value="modern">MODERN SIMPLE</option>
+            <option value="dark">MODERN BLUE</option>
+          </select>
         </div>
 
-    <p class="section-hint">
-        These skills are listed as <strong>preferred</strong> in the job description.
-        Not having them does <strong>not</strong> disqualify you, but having them may
-        improve visibility and competitiveness.
-    </p>
+        <div class="form-group">
+          <div class="api-key-group">
+  <label for="userApiKey">Groq API Key</label>
+  <input
+    type="password"
+    id="userApiKey"
+    placeholder="gsk_..."
+    autocomplete="off"
+  />
 </div>
 
-                <!-- Soft Skill Gaps -->
-                <div class="analysis-section">
-                    <div class="section-header">
-                        <div class="section-icon">💡</div>
-                        <h4>Soft Skill Gaps</h4>
-                    </div>
-                    <div class="soft-skills-list">
-                        <div class="soft-skill-item">
-                            <div class="soft-skill-icon">👥</div>
-                            <span>Collaboration signals — mention cross-functional teamwork</span>
-                        </div>
-                        <div class="soft-skill-item">
-                            <div class="soft-skill-icon">✨</div>
-                            <span>Clean code practices — highlight code review experience</span>
-                        </div>
-                        <div class="soft-skill-item">
-                            <div class="soft-skill-icon">📝</div>
-                            <span>Documentation clarity — showcase technical writing samples</span>
-                        </div>
-                        <div class="soft-skill-item">
-                            <div class="soft-skill-icon">🎯</div>
-                            <span>Leadership initiative — describe mentoring or leading projects</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Actionable Suggestions -->
-                <div class="analysis-section">
-                    <div class="section-header">
-                        <div class="section-icon">✅</div>
-                        <h4>Actionable Suggestions</h4>
-                    </div>
-                    <div class="suggestions-list">
-                        <div class="suggestion-item">
-                            <div class="suggestion-checkbox"></div>
-                            <span>Explicitly mention REST API experience in your work history with metrics</span>
-                        </div>
-                        <div class="suggestion-item">
-                            <div class="suggestion-checkbox"></div>
-                            <span>Highlight collaboration with designers and product managers</span>
-                        </div>
-                        <div class="suggestion-item">
-                            <div class="suggestion-checkbox"></div>
-                            <span>Add quantifiable achievements (e.g., "reduced load time by 40%")</span>
-                        </div>
-                        <div class="suggestion-item">
-                            <div class="suggestion-checkbox"></div>
-                            <span>Include keywords from job description: "microservices", "agile", "scalable"</span>
-                        </div>
-                        <div class="suggestion-item">
-                            <div class="suggestion-checkbox"></div>
-                            <span>Move relevant certifications to a dedicated skills section</span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+          <label>Personal Information👤</label>
+          <textarea id="personalInfo" placeholder="Name, Email, Phone, GitHub, etc."></textarea>
         </div>
+
+        <div class="form-group">
+          <label>Education🎓</label>
+          <textarea id="education"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Experience💼</label>
+          <textarea id="experience"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Projects📂</label>
+          <textarea id="projects"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Skills🛠️</label>
+          <textarea id="skills"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Extracurricular🏆</label>
+          <textarea id="extracurricular"></textarea>
+        </div>
+
+        <button class="btn" id="generateBtn">Generate Resume with AI</button>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <p>Generating your resume...</p>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="panel">
+        <h1>Resume Preview</h1>
+
+        <!-- THE IFRAME PREVIEW -->
+        <iframe id="resumeFrame"
+          style="width:100%; height:850px; border:1px solid hsl(222, 30%, 18%); background:hsl(222, 30%, 18%); border-radius:8px;">
+        </iframe>
+
+        <div class="action-buttons">
+          <button class="btn" id="downloadBtn" disabled>Download PDF</button>
+
+        </div>
+      </div>
     </div>
 
-    <script type="module"src="app.js"></script>
-</body>
+    <script src="script.js"></script>
+  </body>
 </html>
