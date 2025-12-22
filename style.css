@@ -1517,3 +1517,58 @@ button#tlr:active {
     font-size: 10px;
   }
 }
+.demo-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.08),
+    rgba(236, 72, 153, 0.05)
+  );
+
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+.demo-box h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 10px;
+}
+.demo-btn {
+  background: #8b5cf6;
+  color: #ffffff;
+
+  border: none;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
+
+  cursor: pointer;
+  margin-right: 8px;
+
+  transition: all 0.25s ease;
+}
+
+.demo-btn:hover {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.35);
+}
+
+.demo-btn:active {
+  transform: scale(0.97);
+}
+.demo-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.demo-box h4 {
+  margin-bottom: 0;
+  margin-right: auto;
+}

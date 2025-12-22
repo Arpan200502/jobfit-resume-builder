@@ -594,3 +594,79 @@ stopLoaderCycle();
 
     }
 };
+// ---------- DEMO JOB DATA ----------
+const jobDemoData = {
+  1: {
+    title: " Mern Stack Developer",
+    description: `about the job
+Job Post :- Mern Stack Developer
+Experience :- 3+ years
+Location - Ahmedabad (WFO)
+
+
+Responsibilities:
+
+
+Application Development: Develop and maintain web applications using the MERN stack (MongoDB, Express.js, React.js, Node.js).
+Front-End & Back-End Integration: Collaborate with front-end and back-end developers to create a seamless and efficient full-stack application.
+API Design and Integration: Build and integrate RESTful APIs and third-party services to enhance functionality.
+Database Management: Optimize MongoDB databases, handle data storage, schema design, and database queries.
+Bug Fixes and Maintenance: Troubleshoot, debug, and fix issues that arise during development and production phases.
+User Interface Implementation: Work closely with UI/UX designers to implement responsive and user-friendly interfaces using React.js.
+Code Optimization: Ensure that the code is optimized for performance, scalability, and security.
+Collaboration: Collaborate with product managers and designers to understand user requirements and deliver the best user experience.
+Version Control: Use Git and GitHub for version control, ensuring proper codebase management.
+Documentation: Maintain clear and concise documentation for code, APIs, and application workflows.
+
+
+Technical Skills :
+
+
+Strong knowledge of JavaScript and modern frameworks (React.js).
+Understanding of asynchronous programming, promises, a sync/await.
+Experience with unit testing frameworks like Jest or Mocha is a plus.
+Good understanding of security practices and application optimization techniques.
+
+
+Soft Skills:
+
+
+Strong problem-solving and analytical skills.
+Excellent communication skills and the ability to collaborate within a team.
+Self-motivated with a passion for learning and staying up to date with new technologies.
+
+`
+  },
+
+  2: {
+    title: "java Full Stack Developer",
+    description: `Strong proficiency in Java (8 or above) with hands-on experience in building scalable backend applications using Spring Boot, Spring MVC, and RESTful APIs. Solid understanding of React.js and modern JavaScript (ES6+), including Redux, Hooks, and component-based architecture. Experience with HTML5, CSS3, SASS/LESS, and responsive design principles. Familiarity with Node.js and NPM/Yarn for frontend build and dependency management. Proficient in working with Relational Databases (e.g., MySQL, PostgreSQL) and NoSQL Databases (e.g., MongoDB). Experience with JPA/Hibernate for ORM and data persistence.
+
+Roles & Responsibilities Design and develop scalable and secure backend services using Java, Spring Boot, and RESTful APIs. Build responsive and dynamic user interfaces using React.js, JavaScript, HTML, and CSS. Collaborate with UI/UX designers, product managers, and other developers to deliver high-quality features. Integrate frontend and backend components to create seamless full-stack solutions. Write clean, maintainable, and well-documented code following best practices and coding standards. Optimize application performance and troubleshoot issues across the stack. Participate in code reviews, sprint planning, and other Agile ceremonies. Implement unit and integration tests to ensure software reliability and maintainability. Work with DevOps teams to manage CI/CD pipelines, containerization, and cloud deployments. Stay updated with emerging technologies and contribute to continuous improvement initiatives.
+
+Core Skills: Strong proficiency in Java (8 or above) with hands-on experience in building scalable backend applications using Spring Boot, Spring MVC, and RESTful APIs. Solid understanding of React.js and modern JavaScript (ES6+), including Redux, Hooks, and component-based architecture. Experience with HTML5, CSS3, SASS/LESS, and responsive design principles. Familiarity with Node.js and NPM/Yarn for frontend build and dependency management. Database & Persistence: Proficient in working with Relational Databases (e.g., MySQL, PostgreSQL) and NoSQL Databases (e.g., MongoDB). Experience with JPA/Hibernate for ORM and data persistence. DevOps & Tools: Hands-on experience with Git, Maven/Gradle, and CI/CD pipelines (e.g., Jenkins, GitLab CI). Familiarity with Docker and containerized application deployment. Exposure to cloud platforms like AWS, Azure, or GCP is a plus. Testing & Quality: Experience with unit testing frameworks (e.g., JUnit, Mockito) and frontend testing tools (e.g., Jest, React Testing Library). Understanding of code quality, linting, and static code analysis tools. Soft Skills & Collaboration: Ability to work in Agile/Scrum environments with cross-functional teams. Strong problem-solving skills and attention to detail. Excellent communication and documentation abilities.`
+  }
+};
+
+// ---------- WAIT FOR DOM ----------
+document.addEventListener("DOMContentLoaded", () => {
+
+  const btn1 = document.getElementById("demoBtn1");
+  const btn2 = document.getElementById("demoBtn2");
+
+  btn1.addEventListener("click", () => injectDemoData(1));
+  btn2.addEventListener("click", () => injectDemoData(2));
+
+});
+
+// ---------- INJECT FUNCTION ----------
+function injectDemoData(option) {
+  const jobTitleInput = document.getElementById("jobttl");
+  const jobDescInput = document.getElementById("jobd");
+
+  jobTitleInput.value = jobDemoData[option].title;
+  jobDescInput.value = jobDemoData[option].description;
+
+  // Optional UX polish
+  jobTitleInput.focus();
+}
