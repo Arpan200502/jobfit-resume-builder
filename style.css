@@ -1572,3 +1572,33 @@ button#tlr:active {
   margin-bottom: 0;
   margin-right: auto;
 }
+.howapi {
+  display: flex;
+  margin-left: 270px;
+  margin-bottom: 20px;
+  padding-left: 20px;
+  text-decoration: none; /* only once */
+}
+
+/* Large laptops */
+@media (max-width: 1200px) {
+  .howapi { margin-left: 180px; }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+  .howapi { margin-left: 700px; }
+}
+
+/* Small tablets */
+@media (max-width: 768px) {
+  .howapi { margin-left:400px; }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .howapi {
+    margin-left: 0;
+    justify-content: center;
+  }
+}
