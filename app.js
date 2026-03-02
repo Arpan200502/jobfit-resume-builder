@@ -1,118 +1,86 @@
 import * as pdfjsLib from "./libs/pdf.mjs";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc= "./libs/pdf.worker.mjs";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "./libs/pdf.worker.mjs";
 
-
-
-var jobdesc=document.getElementById('jobd')
-var jobttl=document.getElementById('jobttl')
-var pdf=document.getElementById('pdf');
-var btn=document.getElementById('tlr');
-const apiKey=document.getElementById("api");
-
-
-
-apiKey.value = localStorage.getItem("GROQ1_API_KEY") || "";
-
-const MODEL = "llama-3.3-70b-versatile";
-apiKey.addEventListener("input", () => {
-  localStorage.setItem("GROQ1_API_KEY", apiKey.value.trim());
-});
-
+var jobdesc = document.getElementById("jobd");
+var jobttl = document.getElementById("jobttl");
+var pdf = document.getElementById("pdf");
+var btn = document.getElementById("tlr");
 
 let loaderTimer = null;
 
-
-
 function stopLoaderCycle() {
-    clearTimeout(loaderTimer);
-    document.querySelectorAll(".status-steps li")
-        .forEach(li => li.classList.remove("is-visible"));
+  clearTimeout(loaderTimer);
+  document
+    .querySelectorAll(".status-steps li")
+    .forEach((li) => li.classList.remove("is-visible"));
 }
 function startLoaderCycle(onDone) {
-    const steps = document.querySelectorAll(".status-steps li");
-    let index = 0;
+  const steps = document.querySelectorAll(".status-steps li");
+  let index = 0;
 
-    steps.forEach(li => li.classList.remove("is-visible"));
+  steps.forEach((li) => li.classList.remove("is-visible"));
 
-    function next() {
-        if (index >= steps.length) {
-            onDone(); // 🔥 loader fully finished
-            return;
-        }
-
-        steps[index].classList.add("is-visible");
-
-        setTimeout(() => {
-            steps[index].classList.remove("is-visible");
-            index++;
-            next();
-        }, 900);
+  function next() {
+    if (index >= steps.length) {
+      onDone(); // 🔥 loader fully finished
+      return;
     }
 
-    next();
+    steps[index].classList.add("is-visible");
+
+    setTimeout(() => {
+      steps[index].classList.remove("is-visible");
+      index++;
+      next();
+    }, 900);
+  }
+
+  next();
 }
 
+btn.onclick = async function () {
+  var file = pdf.files[0];
+  if (!file) {
+    alert("please upload a file");
+    return;
+  } else {
+    document.querySelector(".aipnl").style.display = "block";
 
+    startLoaderCycle(() => {
+      document.querySelector(".aipnl").style.display = "none";
 
-btn.onclick = async function(){
-   
+      // 🔥 NOW start FileReader + API
+      var reader = new FileReader();
+      reader.readAsArrayBuffer(file);
+      reader.onload = async function () {
+        var pdfdata = reader.result;
+        const loadingtask = pdfjsLib.getDocument(pdfdata);
 
-const API_KEY = apiKey.value.trim();
-    if(!API_KEY){
-        alert("Enter api key");
-        return;
-       }
+        const pdf = await loadingtask.promise;
 
-    
-    var file=pdf.files[0];
-    if(!file){
-        alert("please upload a file");
-        return;
-    }else{
-        
-       document.querySelector(".aipnl").style.display = "block";
-       
-            
+        let fullText = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
 
-startLoaderCycle(() => {
-    document.querySelector(".aipnl").style.display = "none";
-    
+          const textcontent = await page.getTextContent();
+          const extractedtxt = textcontent.items
 
+            .map((item) => item.str)
+            .join(" ");
 
-    // 🔥 NOW start FileReader + API
-    var reader = new FileReader();
-    reader.readAsArrayBuffer(file);
-        reader.onload = async function(){
-            
-            var pdfdata=reader.result;
-            const loadingtask=pdfjsLib.getDocument(pdfdata);
-            
-            const pdf = await loadingtask.promise;
-            
+          fullText = fullText + extractedtxt + "\n";
+        }
+        let cleanText = fullText
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/[•●▪■]/g, "")
+          .replace(
+            /(EXPERIENCE|SKILLS|EDUCATION|PROJECTS|SUMMARY)/gi,
+            "\n$1\n",
+          );
 
-            let fullText="";
-            for(let i=1 ;i<=pdf.numPages;i++){
-
-                const page= await pdf.getPage(i);
-
-                const textcontent= await page.getTextContent();
-                const extractedtxt=textcontent.items
-
-                .map(item =>item.str)
-                .join(" ");
-
-                fullText=fullText+extractedtxt+"\n";
-
-            }
-            let cleanText=fullText
-            .replace(/\s+/g, " ").trim()
-            .replace(/[•●▪■]/g, "")
-            .replace(/(EXPERIENCE|SKILLS|EDUCATION|PROJECTS|SUMMARY)/gi, "\n$1\n");
-
-            
-                
-                    const jobprompt=`
+        const jobprompt = `
                                         You are "ResumeTailor_Architect_v4_Industrial", a specialized, ruthless, logic-driven ATS (Applicant Tracking System) Engine.
 
                     YOUR ROLE:
@@ -329,112 +297,111 @@ startLoaderCycle(() => {
 
                                     `;
 
+        let prompt = jobprompt
+          .replace("[RESUME TEXT]", cleanText)
+          .replace("[JOB DESCRIPTION]", jobdesc.value)
+          .replace("[JOB TITLE]", jobttl.value);
 
+        try {
+          const response = await fetch(
+            "https://backend-ufna.onrender.com/analyze-resume",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                prompt: prompt,
+              }),
+            },
+          );
 
-                let prompt=jobprompt
-                .replace("[RESUME TEXT]",cleanText)
-                .replace("[JOB DESCRIPTION]",jobdesc.value)
-                .replace("[JOB TITLE]",jobttl.value);
+          const data = await response.json();
+          const analysis = data.analysis;
+          console.log("PARSED ANALYSIS:", analysis);
 
-            try {
-                    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${API_KEY}`,
-                        "X-Request-Origin": window.location.origin
-                    },
-                    body: JSON.stringify({
-                        model: MODEL,
-                        messages: [{ role: "user", content: prompt }],
-                        temperature: 0.3,
-                    })
-                    });
-                   
-                    
-                    const data = await response.json();
-                    let raw = data.choices[0].message.content;
-
-                    // Remove ```json and ``` wrappers
-                    raw = raw
-                    .replace(/```json/gi, "")
-                    .replace(/```/g, "")
-                    .trim();
-
-                    const analysis = JSON.parse(raw);
-                        console.log("PARSED ANALYSIS:", analysis);
-
-                    
-                   /* ===============================
+          /* ===============================
                     1. OPEN OVERLAY
                     ================================ */
-                    const overlay = document.querySelector(".ai-review-overlay");
-                    overlay.classList.add("active");
+          const overlay = document.querySelector(".ai-review-overlay");
+          overlay.classList.add("active");
 
-                    /* ===============================
+          /* ===============================
                     2. SCORE RING + VERDICT
                     ================================ */
-                    const scoreNumber = document.querySelector(".score-ring-value .number");
-                    const scoreVerdict = document.querySelector(".score-verdict");
-                    const scoreCircle = document.querySelector(".score-ring-progress");
+          const scoreNumber = document.querySelector(
+            ".score-ring-value .number",
+          );
+          const scoreVerdict = document.querySelector(".score-verdict");
+          const scoreCircle = document.querySelector(".score-ring-progress");
 
-                    scoreNumber.textContent = analysis.overallScore;
-                    scoreVerdict.textContent = analysis.verdict;
+          scoreNumber.textContent = analysis.overallScore;
+          scoreVerdict.textContent = analysis.verdict;
 
-                    // SVG progress ring
-                    const radius = 60;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (analysis.overallScore / 100) * circumference;
+          // SVG progress ring
+          const radius = 60;
+          const circumference = 2 * Math.PI * radius;
+          const offset =
+            circumference - (analysis.overallScore / 100) * circumference;
 
-                    scoreCircle.style.strokeDasharray = `${circumference}`;
-                    scoreCircle.style.strokeDashoffset = offset;
+          scoreCircle.style.strokeDasharray = `${circumference}`;
+          scoreCircle.style.strokeDashoffset = offset;
 
-                    /* ===============================
+          /* ===============================
                     3. CATEGORY BREAKDOWN
                     ================================ */
-                    const categoryMap = {
-                    ats: analysis.categoryScores.atsAlignment,
-                    "hard-skills": analysis.categoryScores.hardSkills,
-                    "soft-skills": analysis.categoryScores.softSkills,
-                    experience: analysis.categoryScores.experience,
-                    };
+          const categoryMap = {
+            ats: analysis.categoryScores.atsAlignment,
+            "hard-skills": analysis.categoryScores.hardSkills,
+            "soft-skills": analysis.categoryScores.softSkills,
+            experience: analysis.categoryScores.experience,
+          };
 
-                    Object.entries(categoryMap).forEach(([cls, value]) => {
-                    const bar = document.querySelector(`.category-bar-fill.${cls}`);
-                    const label = bar.closest(".category-item")
-                        .querySelector(".category-score");
+          Object.entries(categoryMap).forEach(([cls, value]) => {
+            const bar = document.querySelector(`.category-bar-fill.${cls}`);
+            const label = bar
+              .closest(".category-item")
+              .querySelector(".category-score");
 
-                    bar.style.width = `${value}%`;
-                    label.textContent = `${value} / 100`;
-                    });
-                    // ==============================
-                    // Preferred Skills (Optional) - MATCHING CSS STYLE
-                    // ==============================
+            bar.style.width = `${value}%`;
+            label.textContent = `${value} / 100`;
+          });
+          // ==============================
+          // Preferred Skills (Optional) - MATCHING CSS STYLE
+          // ==============================
 
-                    const preferredSection = document.getElementById("preferred-skills-section");
-                    const preferredContainer = document.getElementById("preferred-skills-container");
+          const preferredSection = document.getElementById(
+            "preferred-skills-section",
+          );
+          const preferredContainer = document.getElementById(
+            "preferred-skills-container",
+          );
 
-                    // Clear previous results
-                    preferredContainer.innerHTML = "";
+          // Clear previous results
+          preferredContainer.innerHTML = "";
 
-                    // 1. Get the data
-                    const preferredGaps = analysis.hardSkillsAnalysis?.preferredExposureGaps;
+          // 1. Get the data
+          const preferredGaps =
+            analysis.hardSkillsAnalysis?.preferredExposureGaps;
 
-                    // 2. Check if data exists
-                    if (preferredGaps && Array.isArray(preferredGaps) && preferredGaps.length > 0) {
-                        
-                        // Show the section
-                        preferredSection.style.display = "block";
+          // 2. Check if data exists
+          if (
+            preferredGaps &&
+            Array.isArray(preferredGaps) &&
+            preferredGaps.length > 0
+          ) {
+            // Show the section
+            preferredSection.style.display = "block";
 
-                        // Create cards
-                        preferredGaps.forEach(item => {
-                            const card = document.createElement("div");
-                            
-                            // CHANGE 1: Use 'skill-card' to match Missing Skills styling exactly
-                            card.className = "skill-card"; 
+            // Create cards
+            preferredGaps.forEach((item) => {
+              const card = document.createElement("div");
 
-                            // CHANGE 2: Use the same internal structure (skill-meta, skill-importance)
-                            card.innerHTML = `
+              // CHANGE 1: Use 'skill-card' to match Missing Skills styling exactly
+              card.className = "skill-card";
+
+              // CHANGE 2: Use the same internal structure (skill-meta, skill-importance)
+              card.innerHTML = `
                                 <h5>${item.skill}</h5>
                                 <div class="skill-meta">
                                     <span class="skill-importance medium">
@@ -449,45 +416,46 @@ startLoaderCycle(() => {
                                 </div>
                             `;
 
-                            preferredContainer.appendChild(card);
-                        });
-
-                    } else {
-                        // Hide section if no data found
-                        preferredSection.style.display = "none";
-                    }
-                    /* ===============================
+              preferredContainer.appendChild(card);
+            });
+          } else {
+            // Hide section if no data found
+            preferredSection.style.display = "none";
+          }
+          /* ===============================
                     4. FILTER IMPLIED SKILLS (CRITICAL FIX)
                     ================================ */
-                    const impliedSkills = new Set(
-                    (analysis.hardSkillsAnalysis.implied || []).map(s =>
-                        s.toLowerCase()
-                    )
-                    );
+          const impliedSkills = new Set(
+            (analysis.hardSkillsAnalysis.implied || []).map((s) =>
+              s.toLowerCase(),
+            ),
+          );
 
-                    const keywordSkills = new Set(
-                    (analysis.hardSkillsAnalysis.keywordOptimization || []).map(k =>
-                        k.keyword.toLowerCase()
-                    )
-                    );
+          const keywordSkills = new Set(
+            (analysis.hardSkillsAnalysis.keywordOptimization || []).map((k) =>
+              k.keyword.toLowerCase(),
+            ),
+          );
 
-                    const realMissingSkills = (analysis.hardSkillsAnalysis.missing || []).filter(
-                    m =>
-                        !impliedSkills.has(m.skill.toLowerCase()) &&
-                        !keywordSkills.has(m.skill.toLowerCase())
-                    );
+          const realMissingSkills = (
+            analysis.hardSkillsAnalysis.missing || []
+          ).filter(
+            (m) =>
+              !impliedSkills.has(m.skill.toLowerCase()) &&
+              !keywordSkills.has(m.skill.toLowerCase()),
+          );
 
-                    /* ===============================
+          /* ===============================
                     5. RENDER MISSING SKILLS & TOOLS
                     ================================ */
-                    const skillsGrid = document.querySelector(".skills-grid");
-                    skillsGrid.innerHTML = "";
+          const skillsGrid = document.querySelector(".skills-grid");
+          skillsGrid.innerHTML = "";
 
-                    realMissingSkills.forEach(skill => {
-                    const card = document.createElement("div");
-                    card.className = "skill-card";
+          realMissingSkills.forEach((skill) => {
+            const card = document.createElement("div");
+            card.className = "skill-card";
 
-                    card.innerHTML = `
+            card.innerHTML = `
                         <h5>${skill.skill}</h5>
                         <div class="skill-meta">
                         <span class="skill-importance ${skill.importance.toLowerCase()}">
@@ -499,40 +467,41 @@ startLoaderCycle(() => {
                         </div>
                     `;
 
-                    skillsGrid.appendChild(card);
-                    });
+            skillsGrid.appendChild(card);
+          });
 
-                    /* ===============================
+          /* ===============================
                     6. SOFT SKILL GAPS
                     ================================ */
-                    const softSkillsList = document.querySelector(".soft-skills-list");
-                    softSkillsList.innerHTML = "";
+          const softSkillsList = document.querySelector(".soft-skills-list");
+          softSkillsList.innerHTML = "";
 
-                    analysis.softSkillGaps.forEach(skill => {
-                    const item = document.createElement("div");
-                    item.className = "soft-skill-item";
+          analysis.softSkillGaps.forEach((skill) => {
+            const item = document.createElement("div");
+            item.className = "soft-skill-item";
 
-                    item.innerHTML = `
+            item.innerHTML = `
                         <div class="soft-skill-icon">💡</div>
                         <span>${skill}</span>
                     `;
 
-                    softSkillsList.appendChild(item);
-                    });
+            softSkillsList.appendChild(item);
+          });
 
-                    /* ===============================
+          /* ===============================
                     7. ACTIONABLE SUGGESTIONS
                     (KEYWORD OPTIMIZATION FIRST)
                     ================================ */
-                    const suggestionsList = document.querySelector(".suggestions-list");
-                    suggestionsList.innerHTML = "";
+          const suggestionsList = document.querySelector(".suggestions-list");
+          suggestionsList.innerHTML = "";
 
-                    // ATS keyword wording fixes (NOT learning gaps)
-                    (analysis.hardSkillsAnalysis.keywordOptimization || []).forEach(k => {
-                    const item = document.createElement("div");
-                    item.className = "suggestion-item";
+          // ATS keyword wording fixes (NOT learning gaps)
+          (analysis.hardSkillsAnalysis.keywordOptimization || []).forEach(
+            (k) => {
+              const item = document.createElement("div");
+              item.className = "suggestion-item";
 
-                    item.innerHTML = `
+              item.innerHTML = `
                         <div class="suggestion-checkbox"></div>
                         <span>
                         ATS wording fix: add "<strong>${k.keyword}</strong>" in 
@@ -540,59 +509,50 @@ startLoaderCycle(() => {
                         </span>
                     `;
 
-                    suggestionsList.appendChild(item);
-                    });
+              suggestionsList.appendChild(item);
+            },
+          );
 
-                    // General recommendations
-                    analysis.recommendations.forEach(text => {
-                    const item = document.createElement("div");
-                    item.className = "suggestion-item";
+          // General recommendations
+          analysis.recommendations.forEach((text) => {
+            const item = document.createElement("div");
+            item.className = "suggestion-item";
 
-                    item.innerHTML = `
+            item.innerHTML = `
                         <div class="suggestion-checkbox"></div>
                         <span>${typeof text === "string" ? text : text.text}</span>
                     `;
 
-                    suggestionsList.appendChild(item);
-                    });
+            suggestionsList.appendChild(item);
+          });
 
-                    /* ===============================
+          /* ===============================
                     8. LOAD PDF INTO OVERLAY IFRAME
                     ================================ */
-                    const pdfIframe = document.querySelector(".overlay-resume-preview iframe");
-                    const pdfURL = URL.createObjectURL(file);
-                    pdfIframe.src = pdfURL;
-                    /* ===============================
+          const pdfIframe = document.querySelector(
+            ".overlay-resume-preview iframe",
+          );
+          const pdfURL = URL.createObjectURL(file);
+          pdfIframe.src = pdfURL;
+          /* ===============================
                     CLOSE BUTTON
                     ================================ */
-                    document.querySelector(".overlay-close").onclick = () => {
-                    overlay.classList.remove("active");
-                    URL.revokeObjectURL(pdfURL);
-                    };
- 
-                   
+          document.querySelector(".overlay-close").onclick = () => {
+            overlay.classList.remove("active");
+            URL.revokeObjectURL(pdfURL);
+          };
+        } catch (err) {
+          console.error(err);
+        }
 
-                    
-
-                    } catch (err) {
-                           console.error(err);
-                    }
-                     
-stopLoaderCycle();
+        stopLoaderCycle();
         document.querySelector(".aipnl").style.display = "none";
 
-         btn.style.display = "block";
+        btn.style.display = "block";
         btn.disabled = false;
-
-        }
-});
-
-
-
-       
-        
-
-    }
+      };
+    });
+  }
 };
 // ---------- DEMO JOB DATA ----------
 const jobDemoData = {
@@ -635,7 +595,7 @@ Strong problem-solving and analytical skills.
 Excellent communication skills and the ability to collaborate within a team.
 Self-motivated with a passion for learning and staying up to date with new technologies.
 
-`
+`,
   },
 
   2: {
@@ -644,19 +604,17 @@ Self-motivated with a passion for learning and staying up to date with new techn
 
 Roles & Responsibilities Design and develop scalable and secure backend services using Java, Spring Boot, and RESTful APIs. Build responsive and dynamic user interfaces using React.js, JavaScript, HTML, and CSS. Collaborate with UI/UX designers, product managers, and other developers to deliver high-quality features. Integrate frontend and backend components to create seamless full-stack solutions. Write clean, maintainable, and well-documented code following best practices and coding standards. Optimize application performance and troubleshoot issues across the stack. Participate in code reviews, sprint planning, and other Agile ceremonies. Implement unit and integration tests to ensure software reliability and maintainability. Work with DevOps teams to manage CI/CD pipelines, containerization, and cloud deployments. Stay updated with emerging technologies and contribute to continuous improvement initiatives.
 
-Core Skills: Strong proficiency in Java (8 or above) with hands-on experience in building scalable backend applications using Spring Boot, Spring MVC, and RESTful APIs. Solid understanding of React.js and modern JavaScript (ES6+), including Redux, Hooks, and component-based architecture. Experience with HTML5, CSS3, SASS/LESS, and responsive design principles. Familiarity with Node.js and NPM/Yarn for frontend build and dependency management. Database & Persistence: Proficient in working with Relational Databases (e.g., MySQL, PostgreSQL) and NoSQL Databases (e.g., MongoDB). Experience with JPA/Hibernate for ORM and data persistence. DevOps & Tools: Hands-on experience with Git, Maven/Gradle, and CI/CD pipelines (e.g., Jenkins, GitLab CI). Familiarity with Docker and containerized application deployment. Exposure to cloud platforms like AWS, Azure, or GCP is a plus. Testing & Quality: Experience with unit testing frameworks (e.g., JUnit, Mockito) and frontend testing tools (e.g., Jest, React Testing Library). Understanding of code quality, linting, and static code analysis tools. Soft Skills & Collaboration: Ability to work in Agile/Scrum environments with cross-functional teams. Strong problem-solving skills and attention to detail. Excellent communication and documentation abilities.`
-  }
+Core Skills: Strong proficiency in Java (8 or above) with hands-on experience in building scalable backend applications using Spring Boot, Spring MVC, and RESTful APIs. Solid understanding of React.js and modern JavaScript (ES6+), including Redux, Hooks, and component-based architecture. Experience with HTML5, CSS3, SASS/LESS, and responsive design principles. Familiarity with Node.js and NPM/Yarn for frontend build and dependency management. Database & Persistence: Proficient in working with Relational Databases (e.g., MySQL, PostgreSQL) and NoSQL Databases (e.g., MongoDB). Experience with JPA/Hibernate for ORM and data persistence. DevOps & Tools: Hands-on experience with Git, Maven/Gradle, and CI/CD pipelines (e.g., Jenkins, GitLab CI). Familiarity with Docker and containerized application deployment. Exposure to cloud platforms like AWS, Azure, or GCP is a plus. Testing & Quality: Experience with unit testing frameworks (e.g., JUnit, Mockito) and frontend testing tools (e.g., Jest, React Testing Library). Understanding of code quality, linting, and static code analysis tools. Soft Skills & Collaboration: Ability to work in Agile/Scrum environments with cross-functional teams. Strong problem-solving skills and attention to detail. Excellent communication and documentation abilities.`,
+  },
 };
 
 // ---------- WAIT FOR DOM ----------
 document.addEventListener("DOMContentLoaded", () => {
-
   const btn1 = document.getElementById("demoBtn1");
   const btn2 = document.getElementById("demoBtn2");
 
   btn1.addEventListener("click", () => injectDemoData(1));
   btn2.addEventListener("click", () => injectDemoData(2));
-
 });
 
 // ---------- INJECT FUNCTION ----------
